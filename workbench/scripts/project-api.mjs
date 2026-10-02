@@ -1,3 +1,4 @@
+import { revealFile } from "./reveal-file.mjs";
 import { videoRoot } from "./video-root.mjs";
 // Local Workbench persistence and portable Remotion export; no separate service.
 import {
@@ -140,18 +141,7 @@ export function projectApi(root) {
             const job = disk?.id === id ? disk : jobs.get(id);
             if (!job || job.status !== "done")
               return send(404, { error: "No completed render" });
-            if (process.platform === "win32")
-              spawn("explorer.exe", ["/select,", job.output], {
-                windowsHide: true,
-              });
-            else
-              spawn(
-                process.platform === "darwin" ? "open" : "xdg-open",
-                process.platform === "darwin"
-                  ? ["-R", job.output]
-                  : [path.dirname(job.output)],
-                { windowsHide: true },
-              );
+            await revealFile(job.output);
             return send(200, { ok: true });
           }
           if (route !== "/export")

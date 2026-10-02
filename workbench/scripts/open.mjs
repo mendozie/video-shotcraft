@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { videoRoot, writeVideoRoot } from "./video-root.mjs";
+import { acquireLauncherLock } from "./launcher-lock.mjs";
 /* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // Modified for portable project binding and verified process ownership.
 // One checkout owns one active project, regardless of the requested port.
@@ -41,6 +42,7 @@ const fail = (s) => {
 };
 if (!Number.isInteger(port) || port < 1024 || port > 65535)
   fail("Invalid port (1024..65535).");
+try { process.once("exit", acquireLauncherLock(wb)); } catch (e) { fail(String(e)); }
 const positional = args.filter(
   (a, i) => !a.startsWith("--") && args[i - 1] !== "--port",
 );

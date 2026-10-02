@@ -1,3 +1,4 @@
+import { legacyJson } from "./browserProject";
 import { useState, useEffect } from "react";
 import type { ProjectData } from "./types";
 import { useStore } from "./store";
@@ -45,9 +46,19 @@ export function ProjectFileButtons() {
       setBusy(false);
     }
   };
-  if (disk.projectId === "unlinked") return null;
+  const legacy = legacyJson();
+  const legacyButton = legacy ? <button className="btn" onClick={() => {
+    const url = URL.createObjectURL(new Blob([legacy], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "workbench-legacy-project.json";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }}>{ru ? "Прежний JSON" : "Legacy JSON"}</button> : null;
+  if (disk.projectId === "unlinked") return legacyButton;
   return (
     <>
+      {legacyButton}
       <button className="btn" disabled={busy} onClick={() => act(false)}>
         {ru ? "Сохранить проект" : "Save project"}
         {changed ? " *" : ""}

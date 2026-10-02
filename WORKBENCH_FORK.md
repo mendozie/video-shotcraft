@@ -25,3 +25,7 @@ The repository's Apache license does not replace third-party asset/dependency te
 Fork integration date: 02-10-2026.
 
 Interrupted exports retain their stage ownership record for recovery on the next start. Cleanup accepts only the recorded, marked snapshot inside this checkout staging root; live jobs and unverified paths are preserved. Missing/corrupt asset ledgers block rebinding when ownership cannot be established.
+
+Launchers take an exclusive checkout lease before inspecting or changing bindings. Normal exits release it. After a killed process, inspect `.launcher-lock.json` and verify its recorded PID is no longer running before removing that specific stale lock; do not remove a live or unknown owner's lock.
+
+An old v1 browser timeline is offered for recovery only when no saved disk/project-specific timeline exists, with confirmation because v1 lacks project identity. The original remains available through **Legacy JSON**, including if recovery is declined. Reveal-command failures return an API error instead of terminating the server.

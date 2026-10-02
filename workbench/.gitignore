@@ -28,3 +28,4 @@ public/*
 .project-assets.json
 .render-job.json*
 .project-binding.json*
+.launcher-lock.json

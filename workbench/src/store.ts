@@ -14,21 +14,12 @@ import { t } from "./i18n";
 export { projectDuration } from "./types";
 
 import {disk} from "./projectSession";
+import { loadBrowserProject } from "./browserProject";
 const STORAGE_KEY = `shotcraft-workbench-project-v2:${disk.projectId}`;
 
-const loadSaved = (): ProjectData | null => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const p = JSON.parse(raw) as ProjectData;
-      if (p && Array.isArray(p.tracks)) return p;
-    }
-  } catch {
-    /* 损坏的存档直接回退 */
-  }
-  return null;
-};
-
+const loadSaved = (): ProjectData | null => { try { return loadBrowserProject(localStorage, STORAGE_KEY, (name) => window.confirm(
+  `Previous Workbench timeline found: ${name}. Restore it into this project? Its original project is unknown. Cancel keeps it available through Legacy JSON.`
+)); } catch { return null; } };
 /** 初始工程：
  *  - URL 带 `?import=project`（scripts/open.mjs 交付后打开时加）且已链接成片：
  *    存档不是这一版成片（清单内容哈希不同，见 manifestKey）就按清单重新导入，
