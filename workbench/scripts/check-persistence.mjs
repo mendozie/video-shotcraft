@@ -52,3 +52,13 @@ test("disk montage survives reopen; stale revisions and foreign project IDs cann
   writeFileSync(path.join(root, "workbench.project.json"), "{broken");
   assert.throws(() => s.read());
 });
+
+test("duplicate track IDs cannot replace the saved montage", () => {
+ const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-track-ids-"));
+ const store = createProjectStore(root), initial = store.read();
+ const valid = {name:"Tracks",width:1920,height:1080,fps:30,tracks:[{id:"a",clips:[]}]};
+ const saved = store.save(valid, initial.revision, initial.projectId);
+ const invalid = {...valid, tracks:[...valid.tracks, {id:"a",clips:[]}]};
+ assert.throws(() => store.save(invalid,saved.revision,saved.projectId), /Invalid track/);
+ assert.deepEqual(store.read().project, valid);
+});

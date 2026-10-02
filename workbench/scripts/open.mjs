@@ -25,7 +25,7 @@ import {
 import { createConnection } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readAssetLedger, digestAsset, copyAssetFiles } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset, copyAssetFiles, writeAssetLedger } from "./asset-ledger.mjs";
 import { recoverRenderJob } from "./render-state.mjs";
 const wb = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -219,6 +219,8 @@ for (const name of Object.keys(copies)) {
   const p = join(pub, name);
   if (existsSync(p)) unlinkSync(p);
 }
+// Previous owned file copies are gone; no stale file ownership may survive a failed rebind.
+writeAssetLedger(copiesFile, {});
 for (const name of readdirSync(pub)) {
   const p = join(pub, name);
   if (isLink(p)) unlinkSync(p);

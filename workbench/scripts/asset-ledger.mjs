@@ -63,8 +63,7 @@ export async function copyAssetFiles(files, publicDir, ledgerFile) {
       copyFileSync(source, target);
       ledger[name] = await digestAsset(target);
     }
-    writeFileSync(ledgerFile + ".tmp", JSON.stringify(ledger, null, 2));
-    renameSync(ledgerFile + ".tmp", ledgerFile);
+    writeAssetLedger(ledgerFile, ledger);
     return ledger;
   } catch (error) {
     for (const target of created) {
@@ -72,4 +71,8 @@ export async function copyAssetFiles(files, publicDir, ledgerFile) {
     }
     throw error;
   }
+}
+export function writeAssetLedger(file, ledger) {
+  writeFileSync(file + ".tmp", JSON.stringify(ledger, null, 2));
+  renameSync(file + ".tmp", file);
 }

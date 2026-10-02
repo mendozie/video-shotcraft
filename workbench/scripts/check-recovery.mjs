@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, unlinkSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readAssetLedger, digestAsset, copyAssetFiles } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset, copyAssetFiles, writeAssetLedger } from "./asset-ledger.mjs";
 import { recoverRenderJob, processIdentity } from "./render-state.mjs";
 test("missing or corrupt asset ownership cannot silently expose previous project media", () => {
   const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-ledger-"));
@@ -95,4 +95,19 @@ test("a reused live PID does not keep an interrupted render active", () => {
  assert.equal(recoverRenderJob(root).status, "error");
  assert.equal(existsSync(stage), false);
  process.kill(process.pid, 0); // Recovery must not signal or stop the unrelated process.
+});
+test("failed file-to-directory rebind leaves no stale ownership blocking a retry", async () => {
+ const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-rebind-retry-"));
+ const pub = path.join(root,"public"), source = path.join(root,"source"), dir = path.join(root,"directory"), ledger = path.join(root,".project-assets.json");
+ mkdirSync(pub); mkdirSync(dir); writeFileSync(source,"original source");
+ await copyAssetFiles([["shared",source]],pub,ledger);
+ unlinkSync(path.join(pub,"shared"));
+ writeAssetLedger(ledger,{});
+ symlinkSync(dir,path.join(pub,"shared"),process.platform === "win32" ? "junction" : "dir");
+ await assert.rejects(copyAssetFiles([["new",source],["failed",path.join(root,"absent")]],pub,ledger));
+ assert.deepEqual(readAssetLedger(root),{});
+ unlinkSync(path.join(pub,"shared"));
+ await copyAssetFiles([["shared",source]],pub,ledger);
+ assert.equal(readFileSync(path.join(pub,"shared"),"utf8"),"original source");
+ assert.equal(readFileSync(source,"utf8"),"original source");
 });

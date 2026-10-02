@@ -26,9 +26,11 @@ export function validateProject(p) {
   )
     throw new Error("Invalid project dimensions, fps or tracks");
   const ids = new Set();
+  const trackIds = new Set();
   for (const t of p.tracks) {
-    if (typeof t.id !== "string" || !Array.isArray(t.clips))
+    if (typeof t.id !== "string" || trackIds.has(t.id) || !Array.isArray(t.clips))
       throw new Error("Invalid track");
+    trackIds.add(t.id);
     for (const c of t.clips) {
       if (
         typeof c.id !== "string" ||
