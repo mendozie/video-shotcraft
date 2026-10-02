@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { readAssetLedger, digestAsset, copyAssetFiles } from "./asset-ledger.mjs";
-import { recoverRenderJob } from "./render-state.mjs";
+import { recoverRenderJob, processIdentity } from "./render-state.mjs";
 test("missing or corrupt asset ownership cannot silently expose previous project media", () => {
   const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-ledger-"));
   mkdirSync(path.join(root, "public"));
@@ -39,7 +39,7 @@ test("recover only a dead job snapshot owned by the recorded id within the tool 
   assert.equal(existsSync(outside), true);
   writeFileSync(
     file,
-    JSON.stringify({ ...job, pid: process.pid, stage: outside }),
+    JSON.stringify({ ...job, pid: process.pid, processIdentity: processIdentity(process.pid), stage: outside }),
   );
   assert.equal(recoverRenderJob(root).status, "running");
   assert.equal(existsSync(outside), true);
@@ -69,6 +69,30 @@ test("failed asset binding removes its partial copies and preserves the previous
  assert.equal(readFileSync(ledger, "utf8"), "{}");
  assert.equal(readFileSync(path.join(pub, "unrelated.bin"), "utf8"), "preserve");
  const result = await copyAssetFiles([["first.bin", source]], pub, ledger);
- assert.deepEqual(JSON.parse(readFileSync(ledger, "utf8")), result);
+ assert.deepEqual(JSON.parse(readFileSync(ledger, "utf8")), JSON.parse(JSON.stringify(result)));
  assert.equal(readFileSync(path.join(pub, "first.bin"), "utf8"), "source bytes");
+});
+test("prototype-like asset names remain owned and missing ownership is rejected", async () => {
+ const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-ledger-names-"));
+ const pub = path.join(root, "public"), source = path.join(root, "source.bin"), file = path.join(root, ".project-assets.json");
+ mkdirSync(pub);
+ writeFileSync(source, "owned bytes");
+ await copyAssetFiles([["__proto__", source], ["constructor", source]], pub, file);
+ const saved = JSON.parse(readFileSync(file, "utf8"));
+ assert.equal(Object.hasOwn(saved, "__proto__"), true);
+ assert.equal(Object.hasOwn(saved, "constructor"), true);
+ assert.equal(Object.keys(readAssetLedger(root)).length, 2);
+ writeFileSync(file, "{}");
+ assert.throws(() => readAssetLedger(root), /Unmanaged/);
+});
+test("a reused live PID does not keep an interrupted render active", () => {
+ const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-pid-reuse-"));
+ const stage = path.join(root, ".render-public", "render-owned");
+ mkdirSync(stage, {recursive:true});
+ writeFileSync(path.join(stage, ".owner.json"), JSON.stringify({id:"owned"}));
+ assert.ok(processIdentity(process.pid));
+ writeFileSync(path.join(root, ".render-job.json"), JSON.stringify({id:"owned",pid:process.pid,processIdentity:"different-process-start",status:"running",stage}));
+ assert.equal(recoverRenderJob(root).status, "error");
+ assert.equal(existsSync(stage), false);
+ process.kill(process.pid, 0); // Recovery must not signal or stop the unrelated process.
 });

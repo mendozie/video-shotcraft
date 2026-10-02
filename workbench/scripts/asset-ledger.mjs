@@ -27,7 +27,7 @@ export function readAssetLedger(root) {
     for (const name of readdirSync(pub)) {
       const p = path.join(pub, name),
         stat = lstatSync(p);
-      if (name === ".gitkeep" || stat.isSymbolicLink() || ledger[name])
+      if (name === ".gitkeep" || stat.isSymbolicLink() || Object.hasOwn(ledger, name))
         continue;
       if (
         name === "textures" &&
@@ -51,7 +51,7 @@ export async function digestAsset(file) {
 }
 export async function copyAssetFiles(files, publicDir, ledgerFile) {
   const created = [];
-  const ledger = {};
+  const ledger = Object.create(null);
   try {
     for (const [name, source] of files) {
       if (name !== path.basename(name) || name.startsWith(".")) throw new Error("Invalid asset filename");

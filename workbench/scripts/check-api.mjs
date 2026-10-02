@@ -115,6 +115,7 @@ for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persi
     );
     assert.equal(acknowledgedJob.status, "running");
     assert.ok(acknowledgedJob.pid > 1);
+    assert.equal(typeof acknowledgedJob.processIdentity, "string");
     assert.equal(path.dirname(acknowledgedJob.output), path.join(project, "exports"));
   } finally {
     await new Promise((r) => server.close(r));

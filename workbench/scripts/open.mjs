@@ -128,7 +128,7 @@ if (existsSync(renderFile)) {
   } catch {
     fail("Cannot read render state; binding unchanged.");
   }
-  if (render.status === "running" && (!render.pid || alive(render.pid)))
+  if (render.status === "running")
     fail("Render still running; wait before stopping or switching.");
 }
 if (flag("stop")) {
@@ -187,7 +187,7 @@ for (const name of entries) {
     existsSync(p) &&
     statSync(p).isDirectory() &&
     readdirSync(p).every((n) => isLink(join(p, n)));
-  if (existsSync(p) && !isLink(p) && !copies[name] && !generatedTextures)
+  if (existsSync(p) && !isLink(p) && !Object.hasOwn(copies, name) && !generatedTextures)
     fail(`Unmanaged public asset ${name}; binding unchanged.`);
 }
 if (existsSync(projLink) && !isLink(projLink))

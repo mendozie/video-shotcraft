@@ -22,6 +22,8 @@ import {
   readRenderJob,
   writeRenderJob,
   recoverRenderJob,
+  processIdentity,
+  isRenderActive,
 } from "./render-state.mjs";
 export function stagePublicAssets(root, sourcePublic, publicDir, copiedNames) {
   const names = new Set([
@@ -60,16 +62,7 @@ export function projectApi(root) {
   const jobs = new Map();
   recoverRenderJob(root);
   const readJob = () => readRenderJob(root);
-  const active = () => {
-    const j = readJob();
-    if (j?.status !== "running") return false;
-    try {
-      process.kill(j.pid, 0);
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  const active = () => isRenderActive(readJob());
   return {
     name: "project-files",
     configureServer(server) {
@@ -195,6 +188,7 @@ export function projectApi(root) {
             stage,
             // Own the preparing phase too; renderer PID replaces this after spawn.
             pid: process.pid,
+            processIdentity: processIdentity(process.pid),
             status: "running",
             progress: 0,
             output,
@@ -271,6 +265,7 @@ export function projectApi(root) {
               { cwd: root, windowsHide: true },
             );
             job.pid = child.pid;
+            job.processIdentity = processIdentity(child.pid);
             persist();
             let lastPersist = 0;
             const chunk = (b) => {
