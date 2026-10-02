@@ -14,7 +14,7 @@ Remotion Studio remains useful for component debugging. Its manifest-based compo
 
 ## Verification
 
-From `workbench`: `node --test scripts/check-api.mjs scripts/check-platform.mjs scripts/check-launcher.mjs scripts/check-persistence.mjs scripts/check-recovery.mjs`, then `npm run build`. Root `npm test` runs upstream tests. These checks cover platform generation, foreign-port refusal and persisted montage conflicts/validation. End-to-end acceptance also exercised paths with spaces, A/B/A switching, browser timing/easing edits, stale-file refusal, missing-card export failure, fresh source assets and 10-minute horizontal / 60-second vertical synthetic MP4s at 30 fps. This is not coverage of every gallery card, operating system or production workload.
+From `workbench`: `node --test scripts/check-*.mjs`, then `npm run build`. Root `npm test` runs upstream tests. These checks cover platform generation, foreign-port refusal and persisted montage conflicts/validation. End-to-end acceptance also exercised paths with spaces, A/B/A switching, browser timing/easing edits, stale-file refusal, missing-card export failure, fresh source assets and 10-minute horizontal / 60-second vertical synthetic MP4s at 30 fps. This is not coverage of every gallery card, operating system or production workload.
 
 ## Data, updates and licenses
 
