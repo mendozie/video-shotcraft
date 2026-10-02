@@ -1,3 +1,5 @@
+> Personal fork: Windows and project-owned montage changes are documented in [WORKBENCH_FORK.md](WORKBENCH_FORK.md). Upstream content and credits are preserved.
+
 <div align="center">
 
 <picture>

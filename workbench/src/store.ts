@@ -1,3 +1,4 @@
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 import { create } from "zustand";
 import type { ClipData, ProjectData, TrackData } from "./types";
 import { uid } from "./types";
@@ -5,14 +6,15 @@ import { CARDS } from "./cards/registry";
 import { clipDefaultsFor } from "./cards/types";
 import { demoProject } from "./demoProject";
 import { MANIFEST } from "./cards/projectCards";
-import { manifestKey } from "./cards/manifest";
+
 import { buildProjectFromManifest } from "./projectImport";
 import { upgradeLegacyTheme } from './theme';
 import { t } from "./i18n";
 
 export { projectDuration } from "./types";
 
-const STORAGE_KEY = "shotcraft-workbench-project-v1";
+import {disk} from "./projectSession";
+const STORAGE_KEY = `shotcraft-workbench-project-v2:${disk.projectId}`;
 
 const loadSaved = (): ProjectData | null => {
   try {
@@ -33,12 +35,13 @@ const loadSaved = (): ProjectData | null => {
  *    旧存档压进撤销栈（⌘Z 可找回改动）；是这一版的保留用户改动
  *  - 否则读存档；没有存档时用演示工程 */
 const loadInitial = (): { project: ProjectData; past: ProjectData[]; imported: boolean } => {
+  if (disk.project) return {project: disk.project, past: [], imported: false};
   const raw = loadSaved();
   const saved = raw ? upgradeLegacyTheme(raw, MANIFEST, CARDS) : null;
   const params = new URLSearchParams(window.location.search);
   if (params.get("import") === "project" && MANIFEST) {
     window.history.replaceState(null, "", window.location.pathname);
-    if (saved?.source !== manifestKey(MANIFEST))
+    if (!saved)
       return { project: buildProjectFromManifest(MANIFEST), past: saved ? [saved] : [], imported: true };
   }
   return { project: saved ?? demoProject(), past: [], imported: false };

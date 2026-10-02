@@ -1,3 +1,4 @@
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 import React from "react";
 import { AbsoluteFill, Freeze, Sequence, useCurrentFrame } from "remotion";
 import type { ProjectData } from "../types";
@@ -19,6 +20,9 @@ const TimeRemap: React.FC<{
 };
 
 export const MainComposition: React.FC<{ project: ProjectData }> = ({ project }) => {
+  // Modified: never silently omit saved scenes after a library/manifest change.
+  const missing = project.tracks.flatMap(t=>t.clips).filter(c=>!CARDS[c.cardId]).map(c=>c.cardId);
+  if(missing.length) throw new Error(`Missing scene cards: ${[...new Set(missing)].join(', ')}. Restore their definitions; the saved montage is unchanged.`);
   // UI 中 tracks[0] 是最上层轨 → 最后渲染（覆盖在上）
   const ordered = [...project.tracks].reverse();
   return (

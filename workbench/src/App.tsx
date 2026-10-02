@@ -1,3 +1,7 @@
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
+// Modified: explicit disk save and project-bound export.
+import {ProjectFileButtons} from "./projectFile";
+import {disk} from "./projectSession";
 import React, { useEffect, useRef, useState } from "react";
 import { LibraryPanel } from "./panels/LibraryPanel";
 import { Inspector } from "./panels/Inspector";
@@ -63,7 +67,7 @@ const ExportButton: React.FC = () => {
 
   const start = async () => {
     const project = useStore.getState().project;
-    const r = await fetch("/api/export", { method: "POST", body: JSON.stringify({ project }) });
+    const r = await fetch("/api/export", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ project, projectId:disk.projectId }) });
     const j = await r.json();
     if (!r.ok) {
       window.alert(j.error ?? t("export.startFailed"));
@@ -87,7 +91,7 @@ const ExportButton: React.FC = () => {
         <button
           className="btn"
           title={t("export.revealTitle")}
-          onClick={() => fetch(`/api/export/${job.id}/reveal`, { method: "POST" })}
+          onClick={() => fetch(`/api/export/${job.id}/reveal`, { method: "POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:disk.projectId}) })}
         >
           {t("export.done")}
         </button>
@@ -199,6 +203,7 @@ export const App: React.FC = () => {
           {t("redo")}
         </button>
         <span className="tl-sep" />
+        <ProjectFileButtons />
         <ExportButton />
         <button className="btn" onClick={exportJson}>{t("exportJson")}</button>
         <button className="btn" onClick={() => fileRef.current?.click()}>{t("import")}</button>

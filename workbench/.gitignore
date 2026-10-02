@@ -5,6 +5,7 @@ exports/
 .render-public/
 .dev.pid
 .dev.log
+.demos/
 
 # 按本机链接生成（scripts/gen-index.mjs：prepare / predev / prebuild / prestudio 都会跑）
 src/cards/demo-index.ts
@@ -22,3 +23,7 @@ public/*
 
 # 导入 vs 原片逐帧对照产物（scripts/parity.mjs）
 .parity/
+
+.dev-state.json
+.project-assets.json
+.render-job.json*

@@ -1,0 +1,25 @@
+# Personal Workbench fork
+
+This fork preserves the upstream library and Apache-2.0 notices. It adds Windows launch/export support and project-owned montage files. Modified source files carry modification notices. Upstream baseline: `5ddbf521038b0a7accfb6dc1e0a9eb29c67277ab`.
+
+Install the root test dependencies and `workbench` dependencies with their existing lockfiles (`npm ci --ignore-scripts`). The tested environment is Node 22.18.0, Windows, React 19.2.7 and Remotion 4.0.484. Keep all Remotion packages at compatible locked versions. First export downloads Remotion's Chrome Headless Shell if absent. Root media uses the pinned sirv 3.0.2 static handler (MIT), including HTTP ranges. No `rsync`, Python backend or additional media service is required.
+
+From `workbench`, run `node scripts/open.mjs <video-root> --no-open` and visit the printed URL. The root must contain `src/` or `remotion/src/` with a Remotion entrypoint; a `workbench.ts(x)` manifest makes its scenes editable. Directory junctions avoid Windows symlink privilege requirements. One checkout binds one project, including across different ports. Save browser edits before switching. `node scripts/open.mjs --stop` only stops the recorded, identity-verified server; active renders block switching/stopping.
+
+**Save project** writes `workbench.project.json` next to project `src/`. The previous save is retained as `.previous`. Stale saves fail with a conflict; use Export JSON to retain browser edits and Reload disk to reconcile. Changed manifests never automatically replace saved montage. Keep stable card IDs; missing definitions fail explicitly instead of silently dropping scenes. LocalStorage is project-specific but is not the authoritative file.
+
+**Export video** renders the current browser snapshot, which may include unsaved edits. Save as well to preserve the next working state. Outputs and provenance JSON live in the project's `exports/`. Source root assets are served live; export stages current source assets with the tool's libraries. Reopen after adding media to regenerate the library index. Rendering uses `Main` with `renderExact: true`; the preview includes an extra tail second. Container audio padding may make the measured container duration slightly longer than exact video frames.
+
+Remotion Studio remains useful for component debugging. Its manifest-based compositions are not an independent authoritative copy of manually edited montage. Render `Main` with the saved project JSON when reproducing that montage.
+
+## Verification
+
+From `workbench`: `node --test scripts/check-api.mjs scripts/check-platform.mjs scripts/check-launcher.mjs scripts/check-persistence.mjs`, then `npm run build`. Root `npm test` runs upstream tests. These checks cover platform generation, foreign-port refusal and persisted montage conflicts/validation. End-to-end acceptance also exercised paths with spaces, A/B/A switching, browser timing/easing edits, stale-file refusal, missing-card export failure, fresh source assets and 10-minute horizontal / 60-second vertical synthetic MP4s at 30 fps. This is not coverage of every gallery card, operating system or production workload.
+
+## Data, updates and licenses
+
+Keep footage, private recipes and personal profiles in target projects or a private preferences directory, outside this public fork. Update manually through `upstream`, inspect changes, test a saved montage and representative export before adoption, and retain the prior known-good commit. Do not update or relink during a render. Tool commit and dirty state accompany new exports; preserve source/recipe revisions in the target project too.
+
+The repository's Apache license does not replace third-party asset/dependency terms. See [audio attribution](assets/audio/ATTRIBUTION.md) and [shot attribution](references/shots/ATTRIBUTION.md); some audio sources remain unresolved. QA used a generated tone, not licensed-library clearance. Check the selected media and Remotion license for the actual use.
+
+Fork integration date: 02-10-2026.
