@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import { videoRoot } from "./video-root.mjs";
+import { videoRoot, writeVideoRoot } from "./video-root.mjs";
 /* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // Modified for portable project binding and verified process ownership.
 // One checkout owns one active project, regardless of the requested port.
 import { spawn, spawnSync } from "node:child_process";
 import {
   existsSync,
+  realpathSync,
   lstatSync,
   mkdirSync,
   openSync,
@@ -157,7 +158,7 @@ let src = requested
     : null;
 if (!src)
   fail("Provide a project with src/workbench.ts(x), Root.tsx or index.ts.");
-const projectRoot = videoRoot(src);
+const projectRoot = requested ? realpathSync(requested) : videoRoot(src, wb);
 const pub = join(wb, "public");
 const assets = join(projectRoot, "public");
 const copiesFile = join(wb, ".project-assets.json");
@@ -232,6 +233,7 @@ for (const name of readdirSync(pub)) {
 }
 if (isLink(projLink)) unlinkSync(projLink);
 symlinkSync(src, projLink, process.platform === "win32" ? "junction" : "dir");
+writeVideoRoot(wb, projectRoot, src);
 copies = {};
 for (const name of entries) {
   const source = join(assets, name),

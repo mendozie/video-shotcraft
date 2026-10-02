@@ -21,7 +21,7 @@ test("a fresh checkout generates a usable demo index on the current platform", (
     "utf8",
   );
   if (existsSync(path.join(workbench, "proj"))) {
-    const expected = videoRoot(realpathSync(path.join(workbench, "proj")));
+    const expected = videoRoot(realpathSync(path.join(workbench, "proj")), workbench);
     const meta = readFileSync(path.join(workbench, "src/projMeta.ts"), "utf8");
     assert.ok(meta.includes(JSON.stringify(expected)), "Library metadata must use the video root");
   }

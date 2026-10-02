@@ -11,19 +11,22 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { projectApi } from "./project-api.mjs";
+import { writeVideoRoot } from "./video-root.mjs";
 
-for (const layout of ["src", "remotion/src"]) test(`HTTP persistence and export use the video root for ${layout}`, async () => {
+for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persistence and export use the video root for ${layout}`, async () => {
   const fixture = mkdtempSync(path.join(tmpdir(), "Mendex-video-api-"));
   const root = path.join(fixture, "tool"),
-    project = path.join(fixture, "video");
+    project = path.join(fixture, layout === "named-remotion" ? "remotion" : "video");
+  const sourceLayout = layout === "named-remotion" ? "src" : layout;
   mkdirSync(root);
-  mkdirSync(path.join(project, layout), { recursive: true });
+  mkdirSync(path.join(project, sourceLayout), { recursive: true });
   mkdirSync(path.join(project, "public"));
   symlinkSync(
-    path.join(project, layout),
+    path.join(project, sourceLayout),
     path.join(root, "proj"),
     process.platform === "win32" ? "junction" : "dir",
   );
+  writeVideoRoot(root, project, path.join(project, sourceLayout));
   const stack = [];
   projectApi(root).configureServer({
     middlewares: {

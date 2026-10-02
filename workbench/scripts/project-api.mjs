@@ -25,7 +25,7 @@ import {
 export function projectApi(root) {
   const linked = path.join(root, "proj");
   const projectRoot = existsSync(linked)
-    ? videoRoot(realpathSync(linked))
+    ? videoRoot(realpathSync(linked), root)
     : null;
   const store = projectRoot ? createProjectStore(projectRoot) : null;
   const jobs = new Map();

@@ -27,3 +27,4 @@ public/*
 .dev-state.json
 .project-assets.json
 .render-job.json*
+.project-binding.json*

@@ -253,7 +253,7 @@ const projLinked = existsSync(projLink);
 let projDir = "";
 let hasManifest = false;
 if (projLinked) {
-  try { projDir = videoRoot(realpathSync(projLink)); } catch { projDir = ""; }
+  try { projDir = videoRoot(realpathSync(projLink), wb); } catch { projDir = ""; }
   hasManifest = existsSync(join(projLink, "workbench.ts")) || existsSync(join(projLink, "workbench.tsx"));
 }
 writeFileSync(
