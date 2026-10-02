@@ -23,6 +23,34 @@ import {
   writeRenderJob,
   recoverRenderJob,
 } from "./render-state.mjs";
+export function stagePublicAssets(root, sourcePublic, publicDir, copiedNames) {
+  const names = new Set([
+    ...readdirSync(path.join(root, "public")),
+    ...(sourcePublic && existsSync(sourcePublic)
+      ? readdirSync(sourcePublic)
+      : []),
+  ]);
+  for (const name of names) {
+    if (name.startsWith(".")) continue;
+    const original = sourcePublic
+      ? path.join(sourcePublic, name)
+      : null;
+    if (name === "cardpreviews" && (!original || !existsSync(original))) continue;
+    if (
+      copiedNames.includes(name) &&
+      (!original || !existsSync(original))
+    )
+      continue;
+    cpSync(
+      original && existsSync(original)
+        ? original
+        : path.join(root, "public", name),
+      path.join(publicDir, name),
+      { recursive: true, dereference: true },
+    );
+  }
+
+}
 export function projectApi(root) {
   const linked = path.join(root, "proj");
   const projectRoot = existsSync(linked)
@@ -198,30 +226,7 @@ export function projectApi(root) {
           try {
             const publicDir = path.join(stage, "public");
             mkdirSync(publicDir);
-            const names = new Set([
-              ...readdirSync(path.join(root, "public")),
-              ...(sourcePublic && existsSync(sourcePublic)
-                ? readdirSync(sourcePublic)
-                : []),
-            ]);
-            for (const name of names) {
-              if (name === "cardpreviews" || name.startsWith(".")) continue;
-              const original = sourcePublic
-                ? path.join(sourcePublic, name)
-                : null;
-              if (
-                copiedNames.includes(name) &&
-                (!original || !existsSync(original))
-              )
-                continue;
-              cpSync(
-                original && existsSync(original)
-                  ? original
-                  : path.join(root, "public", name),
-                path.join(publicDir, name),
-                { recursive: true, dereference: true },
-              );
-            }
+            stagePublicAssets(root, sourcePublic, publicDir, copiedNames);
             const props = path.join(stage, "props.json");
             writeFileSync(
               props,

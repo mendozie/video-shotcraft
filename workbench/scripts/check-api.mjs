@@ -7,10 +7,11 @@ import {
   writeFileSync,
   symlinkSync,
   readFileSync,
+  existsSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { projectApi } from "./project-api.mjs";
+import { projectApi, stagePublicAssets } from "./project-api.mjs";
 import { writeVideoRoot } from "./video-root.mjs";
 
 for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persistence and export use the video root for ${layout}`, async () => {
@@ -118,4 +119,21 @@ for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persi
   } finally {
     await new Promise((r) => server.close(r));
   }
+});
+
+test("export preserves project cardpreviews but excludes the tool gallery", () => {
+ const fixture = mkdtempSync(path.join(tmpdir(), "Mendex-video-stage-assets-"));
+ const root = path.join(fixture, "tool"), source = path.join(fixture, "source"), out = path.join(fixture, "out");
+ mkdirSync(path.join(root, "public/cardpreviews"), {recursive:true});
+ mkdirSync(path.join(source, "cardpreviews"), {recursive:true});
+ mkdirSync(out);
+ writeFileSync(path.join(root, "public/cardpreviews/gallery.mp4"), "tool gallery");
+ writeFileSync(path.join(source, "cardpreviews/owned.mp4"), "project footage");
+ stagePublicAssets(root, source, out, []);
+ assert.equal(readFileSync(path.join(out, "cardpreviews/owned.mp4"), "utf8"), "project footage");
+ assert.equal(existsSync(path.join(out, "cardpreviews/gallery.mp4")), false);
+ const toolOnly = path.join(fixture, "tool-only");
+ mkdirSync(toolOnly);
+ stagePublicAssets(root, null, toolOnly, []);
+ assert.equal(existsSync(path.join(toolOnly, "cardpreviews")), false);
 });
