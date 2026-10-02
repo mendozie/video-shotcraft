@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { videoRoot } from "./video-root.mjs";
 
 const wb = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = join(wb, "..");
@@ -252,7 +253,7 @@ const projLinked = existsSync(projLink);
 let projDir = "";
 let hasManifest = false;
 if (projLinked) {
-  try { projDir = dirname(realpathSync(projLink)); } catch { projDir = ""; }
+  try { projDir = videoRoot(realpathSync(projLink)); } catch { projDir = ""; }
   hasManifest = existsSync(join(projLink, "workbench.ts")) || existsSync(join(projLink, "workbench.tsx"));
 }
 writeFileSync(
@@ -260,7 +261,7 @@ writeFileSync(
   banner +
     "// 已链接的成片工程：按本机 proj 链接生成（不进库）\n" +
     `export const PROJ_LINKED = ${projLinked};\n` +
-    `/** 成片工程根目录（src/ 的上级；未链接为空） */\nexport const PROJ_DIR = ${JSON.stringify(projDir)};\n` +
+    `/** 成片工程根目录（支持 src/ 和 remotion/src/；未链接为空） */\nexport const PROJ_DIR = ${JSON.stringify(projDir)};\n` +
     `/** 工程是否提供 src/workbench.ts 清单（没有就只能当素材库用，拆解导入不可用） */\nexport const PROJ_HAS_MANIFEST = ${hasManifest};\n`,
 );
 

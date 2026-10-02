@@ -2,8 +2,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { videoRoot } from "./video-root.mjs";
 
 const workbench = fileURLToPath(new URL("../", import.meta.url));
 
@@ -18,6 +20,11 @@ test("a fresh checkout generates a usable demo index on the current platform", (
     new URL("../src/cards/demo-index.ts", import.meta.url),
     "utf8",
   );
+  if (existsSync(path.join(workbench, "proj"))) {
+    const expected = videoRoot(realpathSync(path.join(workbench, "proj")));
+    const meta = readFileSync(path.join(workbench, "src/projMeta.ts"), "utf8");
+    assert.ok(meta.includes(JSON.stringify(expected)), "Library metadata must use the video root");
+  }
   assert.match(index, /SlowPushIn/);
   assert.doesNotMatch(index, /@demos\/[^"\r\n]*\\/);
 });
