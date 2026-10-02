@@ -12,15 +12,15 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { projectApi } from "./project-api.mjs";
 
-test("HTTP persistence refuses stale/project-confused writes and serves fresh media ranges", async () => {
+for (const layout of ["src", "remotion/src"]) test(`HTTP persistence and export use the video root for ${layout}`, async () => {
   const fixture = mkdtempSync(path.join(tmpdir(), "Mendex-video-api-"));
   const root = path.join(fixture, "tool"),
     project = path.join(fixture, "video");
   mkdirSync(root);
-  mkdirSync(path.join(project, "src"), { recursive: true });
+  mkdirSync(path.join(project, layout), { recursive: true });
   mkdirSync(path.join(project, "public"));
   symlinkSync(
-    path.join(project, "src"),
+    path.join(project, layout),
     path.join(root, "proj"),
     process.platform === "win32" ? "junction" : "dir",
   );
@@ -78,6 +78,7 @@ test("HTTP persistence refuses stale/project-confused writes and serves fresh me
         body: JSON.stringify(body),
       });
     assert.equal((await save({ ...state, project: montage })).status, 200);
+    assert.equal(JSON.parse(readFileSync(path.join(project, "workbench.project.json"), "utf8")).name, "HTTP test");
     assert.equal((await save({ ...state, project: montage })).status, 409);
     assert.equal(
       (await save({ ...state, project: montage, projectId: "another-project" }))
@@ -110,6 +111,7 @@ test("HTTP persistence refuses stale/project-confused writes and serves fresh me
     );
     assert.equal(acknowledgedJob.status, "running");
     assert.ok(acknowledgedJob.pid > 1);
+    assert.equal(path.dirname(acknowledgedJob.output), path.join(project, "exports"));
   } finally {
     await new Promise((r) => server.close(r));
   }

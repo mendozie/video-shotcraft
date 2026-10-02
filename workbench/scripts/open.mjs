@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { videoRoot } from "./video-root.mjs";
 /* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // Modified for portable project binding and verified process ownership.
 // One checkout owns one active project, regardless of the requested port.
@@ -156,7 +157,7 @@ let src = requested
     : null;
 if (!src)
   fail("Provide a project with src/workbench.ts(x), Root.tsx or index.ts.");
-const projectRoot = dirname(src);
+const projectRoot = videoRoot(src);
 const pub = join(wb, "public");
 const assets = join(projectRoot, "public");
 const copiesFile = join(wb, ".project-assets.json");

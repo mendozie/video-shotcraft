@@ -1,3 +1,4 @@
+import { videoRoot } from "./video-root.mjs";
 // Local Workbench persistence and portable Remotion export; no separate service.
 import {
   existsSync,
@@ -24,7 +25,7 @@ import {
 export function projectApi(root) {
   const linked = path.join(root, "proj");
   const projectRoot = existsSync(linked)
-    ? path.dirname(realpathSync(linked))
+    ? videoRoot(realpathSync(linked))
     : null;
   const store = projectRoot ? createProjectStore(projectRoot) : null;
   const jobs = new Map();
