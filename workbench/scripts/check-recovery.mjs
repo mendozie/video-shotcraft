@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readAssetLedger, digestAsset } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset, copyAssetFiles } from "./asset-ledger.mjs";
 import { recoverRenderJob } from "./render-state.mjs";
 test("missing or corrupt asset ownership cannot silently expose previous project media", () => {
   const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-ledger-"));
@@ -55,4 +55,20 @@ test("asset hashing matches SHA-256 across chunk boundaries and propagates missi
   writeFileSync(file, "");
   assert.equal(await digestAsset(file), createHash("sha256").digest("hex"));
   await assert.rejects(digestAsset(path.join(root, "missing.bin")), { code: "ENOENT" });
+});
+test("failed asset binding removes its partial copies and preserves the previous ledger and unrelated files", async () => {
+ const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-copy-rollback-"));
+ const pub = path.join(root, "public"), source = path.join(root, "source.bin"), ledger = path.join(root, ".project-assets.json");
+ mkdirSync(pub);
+ writeFileSync(source, "source bytes");
+ writeFileSync(ledger, "{}");
+ writeFileSync(path.join(pub, "unrelated.bin"), "preserve");
+ await assert.rejects(copyAssetFiles([["first.bin", source], ["missing.bin", path.join(root, "missing-source")]], pub, ledger));
+ assert.equal(existsSync(path.join(pub, "first.bin")), false);
+ assert.equal(existsSync(path.join(pub, "missing.bin")), false);
+ assert.equal(readFileSync(ledger, "utf8"), "{}");
+ assert.equal(readFileSync(path.join(pub, "unrelated.bin"), "utf8"), "preserve");
+ const result = await copyAssetFiles([["first.bin", source]], pub, ledger);
+ assert.deepEqual(JSON.parse(readFileSync(ledger, "utf8")), result);
+ assert.equal(readFileSync(path.join(pub, "first.bin"), "utf8"), "source bytes");
 });

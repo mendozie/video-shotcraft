@@ -1,4 +1,4 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, openSync, closeSync, copyFileSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { readFileSync, existsSync, readdirSync, lstatSync } from "node:fs";
 import path from "node:path";
@@ -48,4 +48,28 @@ export async function digestAsset(file) {
     hash.update(chunk);
   }
   return hash.digest("hex");
+}
+export async function copyAssetFiles(files, publicDir, ledgerFile) {
+  const created = [];
+  const ledger = {};
+  try {
+    for (const [name, source] of files) {
+      if (name !== path.basename(name) || name.startsWith(".")) throw new Error("Invalid asset filename");
+      const target = path.join(publicDir, name);
+      // Claim only a previously absent file; rollback never owns an unrelated destination.
+      const fd = openSync(target, "wx");
+      created.push(target);
+      closeSync(fd);
+      copyFileSync(source, target);
+      ledger[name] = await digestAsset(target);
+    }
+    writeFileSync(ledgerFile + ".tmp", JSON.stringify(ledger, null, 2));
+    renameSync(ledgerFile + ".tmp", ledgerFile);
+    return ledger;
+  } catch (error) {
+    for (const target of created) {
+      if (existsSync(target) && lstatSync(target).isFile()) unlinkSync(target);
+    }
+    throw error;
+  }
 }

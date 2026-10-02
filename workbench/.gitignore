@@ -30,3 +30,4 @@ public/*
 .project-binding.json*
 .launcher-lock.json
 .dev-state.json.tmp
+.project-assets.json.tmp

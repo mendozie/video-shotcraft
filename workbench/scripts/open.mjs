@@ -19,14 +19,13 @@ import {
   symlinkSync,
   unlinkSync,
   writeFileSync,
-  copyFileSync,
   statSync,
 } from "node:fs";
 
 import { createConnection } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readAssetLedger, digestAsset } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset, copyAssetFiles } from "./asset-ledger.mjs";
 import { recoverRenderJob } from "./render-state.mjs";
 const wb = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -235,22 +234,14 @@ for (const name of readdirSync(pub)) {
 if (isLink(projLink)) unlinkSync(projLink);
 symlinkSync(src, projLink, process.platform === "win32" ? "junction" : "dir");
 writeVideoRoot(wb, projectRoot, src);
-copies = {};
+const filesToCopy = [];
 for (const name of entries) {
-  const source = join(assets, name),
-    target = join(pub, name);
+  const source = join(assets, name), target = join(pub, name);
   if (statSync(source).isDirectory())
-    symlinkSync(
-      source,
-      target,
-      process.platform === "win32" ? "junction" : "dir",
-    );
-  else {
-    copyFileSync(source, target);
-    copies[name] = await digestAsset(target);
-  }
+    symlinkSync(source, target, process.platform === "win32" ? "junction" : "dir");
+  else filesToCopy.push([name, source]);
 }
-writeFileSync(copiesFile, JSON.stringify(copies, null, 2));
+await copyAssetFiles(filesToCopy, pub, copiesFile);
 const generated = spawnSync(
   process.execPath,
   [join(wb, "scripts/gen-index.mjs")],
