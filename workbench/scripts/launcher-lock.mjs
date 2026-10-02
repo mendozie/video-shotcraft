@@ -1,4 +1,4 @@
-import { openSync, writeFileSync, readFileSync, closeSync, unlinkSync } from "node:fs";
+import { existsSync, renameSync, openSync, writeFileSync, readFileSync, closeSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -25,4 +25,23 @@ export function acquireLauncherLock(root) {
     } catch {}
   };
   return release;
+}
+
+function validServerState(state) {
+ return state && Number.isInteger(state.pid) && state.pid > 1 &&
+   Number.isInteger(state.port) && state.port >= 1024 && state.port <= 65535 &&
+   typeof state.projectRoot === "string" && path.isAbsolute(state.projectRoot);
+}
+export function readServerState(file) {
+ if (!existsSync(file)) return null;
+ let state;
+ try { state = JSON.parse(readFileSync(file, "utf8")); }
+ catch { throw new Error("Unreadable server ownership state; inspect it before rebinding."); }
+ if (!validServerState(state)) throw new Error("Invalid server ownership state; binding unchanged.");
+ return state;
+}
+export function writeServerState(file, state) {
+ if (!validServerState(state)) throw new Error("Invalid server ownership state; refusing to save.");
+ writeFileSync(file + ".tmp", JSON.stringify(state, null, 2));
+ renameSync(file + ".tmp", file);
 }

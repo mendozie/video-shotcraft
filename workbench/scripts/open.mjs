@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { videoRoot, writeVideoRoot } from "./video-root.mjs";
-import { acquireLauncherLock } from "./launcher-lock.mjs";
+import { acquireLauncherLock, readServerState, writeServerState } from "./launcher-lock.mjs";
 /* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // Modified for portable project binding and verified process ownership.
 // One checkout owns one active project, regardless of the requested port.
@@ -72,8 +72,8 @@ if (!existsSync(viteBin))
 const stateFile = join(wb, ".dev-state.json");
 let state = null;
 try {
-  state = JSON.parse(readFileSync(stateFile, "utf8"));
-} catch {}
+  state = readServerState(stateFile);
+} catch (e) { fail(String(e)); }
 const alive = (pid) => {
   try {
     process.kill(pid, 0);
@@ -265,10 +265,11 @@ const child = spawn(
 );
 child.unref();
 closeSync(fd);
-writeFileSync(
-  stateFile,
-  JSON.stringify({ pid: child.pid, port, projectRoot }, null, 2),
-);
+try { writeServerState(stateFile, { pid: child.pid, port, projectRoot }); }
+catch (e) {
+  if (alive(child.pid)) process.kill(child.pid);
+  fail(`Cannot persist server ownership: ${e}`);
+}
 const url = `http://127.0.0.1:${port}/`;
 let ready = false;
 for (let i = 0; i < 120; i++) {

@@ -29,3 +29,4 @@ public/*
 .render-job.json*
 .project-binding.json*
 .launcher-lock.json
+.dev-state.json.tmp
