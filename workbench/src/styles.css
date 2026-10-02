@@ -1,3 +1,4 @@
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 /* —— ShotCraft Workbench · Apple 风格暗色工作台（源出 video-talkcraft/workbench） ——
    参照 macOS 专业应用（Final Cut / Logic）的暗色 chrome：
    近黑分层底 + 发丝线分隔 + SF 字系 + 单一 accent（#0a84ff）+ 克制的圆角与投影。 */
@@ -36,7 +37,7 @@ body {
 /* —— 顶栏 —— */
 .topbar {
   display: flex; align-items: center; gap: 8px;
-  height: 50px; padding: 0 16px;
+  min-height: 50px; padding: 8px 16px; flex-wrap: wrap;
   background: var(--panel); border-bottom: 1px solid var(--line);
   flex: none;
 }

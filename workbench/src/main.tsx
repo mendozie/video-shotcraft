@@ -1,7 +1,12 @@
-import ReactDOM from "react-dom/client";
-import { App } from "./App";
-import "./styles.css";
-
-// 不包 <React.StrictMode>：工作台永远跑在 dev server 上（导出也走它），StrictMode 会把每个
-// Remotion Player / 缩略图挂载两遍，首屏十几个 1080p 场景闪一轮，用户看到的就是"闪"。
-ReactDOM.createRoot(document.getElementById("root")!).render(<App />);
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
+import ReactDOM from 'react-dom/client';
+import {loadDisk} from './projectSession';
+import './styles.css';
+// Load the canonical file before mounting an editable timeline. Corrupt files fail closed.
+loadDisk().then(async()=>{
+  const {App}=await import('./App');
+  ReactDOM.createRoot(document.getElementById('root')!).render(<App/>);
+}).catch(error=>{
+  const root=document.getElementById('root')!;
+  root.textContent=`Cannot open project: ${error}. Fix the file or link a project, then reload.`;
+});

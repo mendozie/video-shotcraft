@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // 生成静态索引与本机清单（全部不进库，npm install 的 prepare 钩子与 dev/build/studio 前置钩子都会跑）：
 //   src/cards/demo-index.ts   demos/ 镜头卡 demo 组件静态索引（webpack/Vite 双兼容——Remotion CLI 不认 import.meta.glob）
 //   src/cards/demoMeta.ts     demo → 中文名 / 画廊分类 / 预览视频（由 gallery/api/library.json + translations.js 生成）
@@ -11,6 +12,7 @@ import {
 } from "node:fs";
 import { dirname, extname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { videoRoot } from "./video-root.mjs";
 
 const wb = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = join(wb, "..");
@@ -23,11 +25,15 @@ const ensureLink = (linkPath, target) => {
   if (!existsSync(abs)) return false;
   try {
     const st = lstatSync(linkPath);
+    // Keep live project/custom bindings; bundled links are only fallbacks.
+    if (st.isSymbolicLink() && existsSync(linkPath)) return true;
     if (st.isSymbolicLink()) unlinkSync(linkPath);
     else return true; // 真实文件/目录（成片工程链接进来的）：不动
   } catch { /* 不存在 */ }
   mkdirSync(dirname(linkPath), { recursive: true });
-  symlinkSync(target, linkPath);
+  // Windows directory junctions do not require symlink privileges.
+  symlinkSync(process.platform === "win32" ? abs : target, linkPath,
+    process.platform === "win32" ? "junction" : "dir");
   return true;
 };
 const publicDir = join(wb, "public");
@@ -49,7 +55,9 @@ ensureLink(join(publicDir, "bgmlib"), "../../assets/audio/bgm");
 //   → 文件内未导出的 `const *DUR*|TOTAL|*END = N` → 缺省 150f（clip 可再裁剪/定格，motion-lab 系卡按 clip 长度归一化）
 const DUR_PAT = /export const (\w+_DURATION|\w+_DUR)\s*=/;
 const MATERIAL_REQUIRED = new Set(["ClipCardLooping"]); // 需要真实 mp4 素材，无法自动生成
-const demosDir = join(wb, "demosrc");
+// Git may check out the tracked POSIX symlink as a text file on Windows.
+const demosDir = join(wb, process.platform === "win32" ? ".demos" : "demosrc");
+if (process.platform === "win32") ensureLink(demosDir, "../demos");
 const framesIn = (text) => { const m = text && /(\d{2,4})\s*f\b/.exec(text); return m ? Number(m[1]) : 0; };
 const cardMdFrames = (category, slug) => {
   try { const md = readFileSync(join(repo, "references/shots", category, `${slug}.md`), "utf8"); const m = /^时长:\s*(.*)$/m.exec(md); return framesIn(m?.[1]); } catch { return 0; }
@@ -68,7 +76,7 @@ const walkDemos = (dir) => {
     if (MATERIAL_REQUIRED.has(stem)) continue;
     const src = readFileSync(p, "utf8");
     if (!new RegExp(`export const ${stem}\\s*:\\s*React\\.FC\\s*=`).test(src)) continue;
-    const rel = relative(demosDir, p).replace(/\.tsx$/, "");
+    const rel = relative(demosDir, p).replaceAll("\\", "/").replace(/\.tsx$/, "");
     const [category, slug] = rel.split("/");
     const m = DUR_PAT.exec(src);
     let durExport = m?.[1];
@@ -247,7 +255,7 @@ const projLinked = existsSync(projLink);
 let projDir = "";
 let hasManifest = false;
 if (projLinked) {
-  try { projDir = dirname(realpathSync(projLink)); } catch { projDir = ""; }
+  try { projDir = videoRoot(realpathSync(projLink), wb); } catch { projDir = ""; }
   hasManifest = existsSync(join(projLink, "workbench.ts")) || existsSync(join(projLink, "workbench.tsx"));
 }
 writeFileSync(
@@ -255,7 +263,7 @@ writeFileSync(
   banner +
     "// 已链接的成片工程：按本机 proj 链接生成（不进库）\n" +
     `export const PROJ_LINKED = ${projLinked};\n` +
-    `/** 成片工程根目录（src/ 的上级；未链接为空） */\nexport const PROJ_DIR = ${JSON.stringify(projDir)};\n` +
+    `/** 成片工程根目录（支持 src/ 和 remotion/src/；未链接为空） */\nexport const PROJ_DIR = ${JSON.stringify(projDir)};\n` +
     `/** 工程是否提供 src/workbench.ts 清单（没有就只能当素材库用，拆解导入不可用） */\nexport const PROJ_HAS_MANIFEST = ${hasManifest};\n`,
 );
 
