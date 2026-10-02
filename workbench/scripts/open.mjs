@@ -21,11 +21,11 @@ import {
   copyFileSync,
   statSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
+
 import { createConnection } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readAssetLedger } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset } from "./asset-ledger.mjs";
 import { recoverRenderJob } from "./render-state.mjs";
 const wb = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -168,8 +168,7 @@ try {
 } catch (e) {
   fail(String(e));
 }
-const digest = (p) =>
-  createHash("sha256").update(readFileSync(p)).digest("hex");
+
 const entries = existsSync(assets)
   ? readdirSync(assets).filter((n) => !n.startsWith("."))
   : [];
@@ -177,7 +176,7 @@ const entries = existsSync(assets)
 for (const [name, hash] of Object.entries(copies)) {
   if (name !== name.split(/[\\/]/).pop()) fail("Invalid local asset ledger.");
   const p = join(pub, name);
-  if (existsSync(p) && (!statSync(p).isFile() || digest(p) !== hash))
+  if (existsSync(p) && (!statSync(p).isFile() || (await digestAsset(p)) !== hash))
     fail(`Locally changed asset ${name}; preserve it before switching.`);
 }
 for (const name of entries) {
@@ -246,7 +245,7 @@ for (const name of entries) {
     );
   else {
     copyFileSync(source, target);
-    copies[name] = digest(target);
+    copies[name] = await digestAsset(target);
   }
 }
 writeFileSync(copiesFile, JSON.stringify(copies, null, 2));

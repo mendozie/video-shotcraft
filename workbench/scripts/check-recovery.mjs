@@ -1,9 +1,10 @@
+import { createHash } from "node:crypto";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readAssetLedger } from "./asset-ledger.mjs";
+import { readAssetLedger, digestAsset } from "./asset-ledger.mjs";
 import { recoverRenderJob } from "./render-state.mjs";
 test("missing or corrupt asset ownership cannot silently expose previous project media", () => {
   const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-ledger-"));
@@ -42,4 +43,16 @@ test("recover only a dead job snapshot owned by the recorded id within the tool 
   );
   assert.equal(recoverRenderJob(root).status, "running");
   assert.equal(existsSync(outside), true);
+});
+
+test("asset hashing matches SHA-256 across chunk boundaries and propagates missing files", async () => {
+  const root = mkdtempSync(path.join(tmpdir(), "Mendex-video-hash-"));
+  const file = path.join(root, "media.bin");
+  const bytes = Buffer.alloc(3 * 1024 * 1024 + 157);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = i % 251;
+  writeFileSync(file, bytes);
+  assert.equal(await digestAsset(file), createHash("sha256").update(bytes).digest("hex"));
+  writeFileSync(file, "");
+  assert.equal(await digestAsset(file), createHash("sha256").digest("hex"));
+  await assert.rejects(digestAsset(path.join(root, "missing.bin")), { code: "ENOENT" });
 });

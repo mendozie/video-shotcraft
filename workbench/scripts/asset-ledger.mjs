@@ -1,3 +1,5 @@
+import { createReadStream } from "node:fs";
+import { createHash } from "node:crypto";
 import { readFileSync, existsSync, readdirSync, lstatSync } from "node:fs";
 import path from "node:path";
 export function readAssetLedger(root) {
@@ -38,4 +40,12 @@ export function readAssetLedger(root) {
       );
     }
   return ledger;
+}
+
+export async function digestAsset(file) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(file, { highWaterMark: 1024 * 1024 })) {
+    hash.update(chunk);
+  }
+  return hash.digest("hex");
 }
