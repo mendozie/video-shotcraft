@@ -181,7 +181,8 @@ export function projectApi(root) {
           const stage = mkdtempSync(path.join(stagingRoot, "render-"));
           const job = {
             id,
-            pid: null,
+            // Own the preparing phase too; renderer PID replaces this after spawn.
+            pid: process.pid,
             status: "running",
             progress: 0,
             output,
@@ -193,6 +194,7 @@ export function projectApi(root) {
             writeFileSync(`${jobFile}.tmp`, JSON.stringify(job));
             renameSync(`${jobFile}.tmp`, jobFile);
           };
+          persist();
           send(200, { id });
           // Snapshot both props and assets. Only the newly allocated stage is disposable.
           const cleanup = () => {
