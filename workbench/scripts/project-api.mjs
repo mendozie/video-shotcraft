@@ -9,13 +9,18 @@ import {
   mkdtempSync,
   cpSync,
   rmSync,
-  renameSync,
   statSync,
 } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import sirv from "sirv";
 import { createProjectStore, validateProject } from "./project-file.mjs";
+import { readAssetLedger } from "./asset-ledger.mjs";
+import {
+  readRenderJob,
+  writeRenderJob,
+  recoverRenderJob,
+} from "./render-state.mjs";
 export function projectApi(root) {
   const linked = path.join(root, "proj");
   const projectRoot = existsSync(linked)
@@ -23,14 +28,8 @@ export function projectApi(root) {
     : null;
   const store = projectRoot ? createProjectStore(projectRoot) : null;
   const jobs = new Map();
-  const jobFile = path.join(root, ".render-job.json");
-  const readJob = () => {
-    try {
-      return JSON.parse(readFileSync(jobFile, "utf8"));
-    } catch {
-      return null;
-    }
-  };
+  recoverRenderJob(root);
+  const readJob = () => readRenderJob(root);
   const active = () => {
     const j = readJob();
     if (j?.status !== "running") return false;
@@ -51,14 +50,7 @@ export function projectApi(root) {
       const serveSource = sourcePublic
         ? sirv(sourcePublic, { dev: true, etag: false, extensions: [] })
         : null;
-      let copiedNames = [];
-      try {
-        copiedNames = Object.keys(
-          JSON.parse(
-            readFileSync(path.join(root, ".project-assets.json"), "utf8"),
-          ),
-        );
-      } catch {}
+      const copiedNames = Object.keys(readAssetLedger(root));
       server.middlewares.use((req, res, next) => {
         if (!sourcePublic || req.method !== "GET") return next();
         let name;
@@ -181,6 +173,7 @@ export function projectApi(root) {
           const stage = mkdtempSync(path.join(stagingRoot, "render-"));
           const job = {
             id,
+            stage,
             // Own the preparing phase too; renderer PID replaces this after spawn.
             pid: process.pid,
             status: "running",
@@ -190,10 +183,11 @@ export function projectApi(root) {
             logTail: [],
           };
           jobs.set(id, job);
-          const persist = () => {
-            writeFileSync(`${jobFile}.tmp`, JSON.stringify(job));
-            renameSync(`${jobFile}.tmp`, jobFile);
-          };
+          writeFileSync(
+            path.join(stage, ".owner.json"),
+            JSON.stringify({ id }),
+          );
+          const persist = () => writeRenderJob(root, job);
           persist();
           send(200, { id });
           // Snapshot both props and assets. Only the newly allocated stage is disposable.

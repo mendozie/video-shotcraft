@@ -23,6 +23,8 @@ import { createHash } from "node:crypto";
 import { createConnection } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readAssetLedger } from "./asset-ledger.mjs";
+import { recoverRenderJob } from "./render-state.mjs";
 const wb = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const flag = (k) => args.includes(`--${k}`);
@@ -111,6 +113,11 @@ const managed = owned(state);
 if (state && alive(state.pid) && !managed)
   fail("Recorded process ownership cannot be verified; binding unchanged.");
 const renderFile = join(wb, ".render-job.json");
+try {
+  recoverRenderJob(wb);
+} catch (e) {
+  fail(String(e));
+}
 if (existsSync(renderFile)) {
   let render;
   try {
@@ -153,10 +160,12 @@ const projectRoot = dirname(src);
 const pub = join(wb, "public");
 const assets = join(projectRoot, "public");
 const copiesFile = join(wb, ".project-assets.json");
-let copies = {};
+let copies;
 try {
-  copies = JSON.parse(readFileSync(copiesFile, "utf8"));
-} catch {}
+  copies = readAssetLedger(wb);
+} catch (e) {
+  fail(String(e));
+}
 const digest = (p) =>
   createHash("sha256").update(readFileSync(p)).digest("hex");
 const entries = existsSync(assets)

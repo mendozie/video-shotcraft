@@ -14,7 +14,7 @@ Remotion Studio remains useful for component debugging. Its manifest-based compo
 
 ## Verification
 
-From `workbench`: `node --test scripts/check-api.mjs scripts/check-platform.mjs scripts/check-launcher.mjs scripts/check-persistence.mjs`, then `npm run build`. Root `npm test` runs upstream tests. These checks cover platform generation, foreign-port refusal and persisted montage conflicts/validation. End-to-end acceptance also exercised paths with spaces, A/B/A switching, browser timing/easing edits, stale-file refusal, missing-card export failure, fresh source assets and 10-minute horizontal / 60-second vertical synthetic MP4s at 30 fps. This is not coverage of every gallery card, operating system or production workload.
+From `workbench`: `node --test scripts/check-api.mjs scripts/check-platform.mjs scripts/check-launcher.mjs scripts/check-persistence.mjs scripts/check-recovery.mjs`, then `npm run build`. Root `npm test` runs upstream tests. These checks cover platform generation, foreign-port refusal and persisted montage conflicts/validation. End-to-end acceptance also exercised paths with spaces, A/B/A switching, browser timing/easing edits, stale-file refusal, missing-card export failure, fresh source assets and 10-minute horizontal / 60-second vertical synthetic MP4s at 30 fps. This is not coverage of every gallery card, operating system or production workload.
 
 ## Data, updates and licenses
 
@@ -23,3 +23,5 @@ Keep footage, private recipes and personal profiles in target projects or a priv
 The repository's Apache license does not replace third-party asset/dependency terms. See [audio attribution](assets/audio/ATTRIBUTION.md) and [shot attribution](references/shots/ATTRIBUTION.md); some audio sources remain unresolved. QA used a generated tone, not licensed-library clearance. Check the selected media and Remotion license for the actual use.
 
 Fork integration date: 02-10-2026.
+
+Interrupted exports retain their stage ownership record for recovery on the next start. Cleanup accepts only the recorded, marked snapshot inside this checkout staging root; live jobs and unverified paths are preserved. Missing/corrupt asset ledgers block rebinding when ownership cannot be established.
