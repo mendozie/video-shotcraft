@@ -206,14 +206,7 @@ export function projectApi(root) {
             lastLine: "Preparing assets",
             logTail: [],
           };
-          jobs.set(id, job);
-          writeFileSync(
-            path.join(stage, ".owner.json"),
-            JSON.stringify({ id }),
-          );
           const persist = () => writeRenderJob(root, job);
-          persist();
-          send(200, { id });
           // Snapshot both props and assets. Only the newly allocated stage is disposable.
           const cleanup = () => {
             if (
@@ -222,6 +215,15 @@ export function projectApi(root) {
             )
               rmSync(stage, { recursive: true, force: true });
           };
+          try {
+            writeFileSync(path.join(stage, ".owner.json"), JSON.stringify({ id }));
+            persist();
+          } catch (error) {
+            cleanup();
+            throw error;
+          }
+          jobs.set(id, job);
+          send(200, { id });
           const failed = (error) => {
             job.status = "error";
             job.lastLine = String(error);

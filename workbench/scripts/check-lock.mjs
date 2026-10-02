@@ -34,7 +34,7 @@ test("launcher refuses a corrupt ownership record before binding", () => {
  mkdirSync(path.join(root, "scripts"));
  mkdirSync(path.join(root, "node_modules/vite/bin"), {recursive:true});
  writeFileSync(path.join(root, "node_modules/vite/bin/vite.js"), "");
- for (const name of ["open.mjs", "video-root.mjs", "launcher-lock.mjs", "asset-ledger.mjs", "render-state.mjs"])
+ for (const name of ["open.mjs", "video-root.mjs", "launcher-lock.mjs", "asset-ledger.mjs", "render-state.mjs", "reveal-file.mjs"])
    copyFileSync(new URL(name, import.meta.url), path.join(root, "scripts", name));
  writeFileSync(path.join(root, ".dev-state.json"), "{truncated");
  const result = spawnSync(process.execPath, [path.join(root, "scripts/open.mjs"), "--stop"], {encoding:"utf8",windowsHide:true});

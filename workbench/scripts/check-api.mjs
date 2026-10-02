@@ -8,6 +8,8 @@ import {
   symlinkSync,
   readFileSync,
   existsSync,
+  readdirSync,
+  rmdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -102,6 +104,12 @@ for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persi
       409,
     );
     const fresh = await (await fetch(base + "/api/project")).json();
+    const blockedState = path.join(root, ".render-job.json.tmp");
+    mkdirSync(blockedState);
+    const rejectedExport = await fetch(base + "/api/export", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project:montage,projectId:state.projectId})});
+    assert.equal(rejectedExport.status,400);
+    assert.deepEqual(readdirSync(path.join(root,".render-public")),[]);
+    rmdirSync(blockedState);
     const unicode = {...montage,name:"Привет 🎬"};
     const bytes = Buffer.from(JSON.stringify({...fresh,project:unicode}));
     const split = bytes.indexOf(Buffer.from("П")) + 1;

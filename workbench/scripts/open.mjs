@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { videoRoot, writeVideoRoot } from "./video-root.mjs";
+import { openBrowser } from "./reveal-file.mjs";
 import { acquireLauncherLock, readServerState, writeServerState } from "./launcher-lock.mjs";
 /* Modified in the personal fork, 02-10-2026: Windows and project-owned video workflow. */
 // Modified for portable project binding and verified process ownership.
@@ -275,23 +276,7 @@ for (let i = 0; i < 120; i++) {
 }
 if (!ready) fail("Dev server did not become ready. Read .dev.log.");
 const openUrl = url + (flag("no-import") ? "" : "?import=project");
-if (!flag("no-open")) {
-  const cmd =
-    process.platform === "win32"
-      ? "rundll32.exe"
-      : process.platform === "darwin"
-        ? "open"
-        : "xdg-open";
-  const argv =
-    process.platform === "win32"
-      ? ["url.dll,FileProtocolHandler", openUrl]
-      : [openUrl];
-  spawn(cmd, argv, {
-    stdio: "ignore",
-    detached: true,
-    windowsHide: true,
-  }).unref();
-}
+if (!flag("no-open")) openBrowser(openUrl);
 console.log(
   `[workbench] ${openUrl}\nProject: ${projectRoot}\nStop: node scripts/open.mjs --stop`,
 );
