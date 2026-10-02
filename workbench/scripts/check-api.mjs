@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "node:http";
+import { createServer, request } from "node:http";
 import {
   mkdtempSync,
   mkdirSync,
@@ -14,6 +14,18 @@ import path from "node:path";
 import { projectApi, stagePublicAssets } from "./project-api.mjs";
 import { writeVideoRoot } from "./video-root.mjs";
 
+function splitPost(url, bytes, cut, between = async () => {}) {
+ return new Promise((resolve,reject) => {
+  const req = request(url,{method:"POST",headers:{"Content-Type":"application/json"}},res => {
+   const chunks=[];
+   res.on("data", c=>chunks.push(c));
+   res.on("end",()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString("utf8"))}));
+  });
+  req.on("error",reject);
+  req.write(bytes.subarray(0,cut));
+  setTimeout(async()=>{try {await between(); req.end(bytes.subarray(cut));} catch(e) {req.destroy();reject(e);}},20);
+ });
+}
 for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persistence and export use the video root for ${layout}`, async () => {
   const fixture = mkdtempSync(path.join(tmpdir(), "Mendex-video-api-"));
   const root = path.join(fixture, "tool"),
@@ -89,6 +101,14 @@ for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persi
         .status,
       409,
     );
+    const fresh = await (await fetch(base + "/api/project")).json();
+    const unicode = {...montage,name:"Привет 🎬"};
+    const bytes = Buffer.from(JSON.stringify({...fresh,project:unicode}));
+    const split = bytes.indexOf(Buffer.from("П")) + 1;
+    const unicodeSave = await splitPost(base + "/api/project",bytes,split);
+    assert.equal(unicodeSave.status,200);
+    assert.equal(unicodeSave.body.project.name,unicode.name);
+    assert.equal(JSON.parse(readFileSync(path.join(project,"workbench.project.json"),"utf8")).name,unicode.name);
     writeFileSync(path.join(project, "public", "new.txt"), "first-bytes");
     assert.equal(await (await fetch(base + "/new.txt")).text(), "first-bytes");
     writeFileSync(path.join(project, "public", "new.txt"), "updated-bytes");
@@ -117,6 +137,13 @@ for (const layout of ["src", "remotion/src", "named-remotion"]) test(`HTTP persi
     assert.ok(acknowledgedJob.pid > 1);
     assert.equal(typeof acknowledgedJob.processIdentity, "string");
     assert.equal(path.dirname(acknowledgedJob.output), path.join(project, "exports"));
+    const drain = () => fetch(base + "/api/drain",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ownerPid:process.pid})});
+    writeFileSync(path.join(root,".render-job.json"),JSON.stringify(acknowledgedJob));
+    assert.equal((await drain()).status,409);
+    writeFileSync(path.join(root,".render-job.json"),JSON.stringify({...acknowledgedJob,status:"error"}));
+    const exportBytes = Buffer.from(JSON.stringify({project:montage,projectId:state.projectId}));
+    const delayedExport = await splitPost(base + "/api/export",exportBytes,10,async()=>assert.equal((await drain()).status,200));
+    assert.equal(delayedExport.status,503);
   } finally {
     await new Promise((r) => server.close(r));
   }

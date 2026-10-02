@@ -131,8 +131,16 @@ if (existsSync(renderFile)) {
   if (render.status === "running")
     fail("Render still running; wait before stopping or switching.");
 }
+async function drainServer(server) {
+  const response = await fetch(`http://127.0.0.1:${server.port}/api/drain`, {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ownerPid:server.pid}), signal: AbortSignal.timeout(5000),
+  }).catch(() => null);
+  if (!response?.ok) fail("Cannot drain the owned server; render may be running. Binding unchanged.");
+}
 if (flag("stop")) {
   if (managed) {
+    await drainServer(state);
     process.kill(state.pid);
     for (let i = 0; i < 50 && alive(state.pid); i++) await sleep(100);
     if (alive(state.pid)) fail("Server did not stop.");
@@ -193,15 +201,7 @@ for (const name of entries) {
 if (existsSync(projLink) && !isLink(projLink))
   fail("proj is not a managed link; binding unchanged.");
 if (managed) {
-  const running = await fetch(
-    `http://127.0.0.1:${state.port}/api/export-status`,
-  )
-    .then((r) => r.json())
-    .catch(() => null);
-  if (!running || running.running)
-    fail(
-      "Render state unavailable or render still running; wait before switching.",
-    );
+  await drainServer(state);
   // A fresh launch always restarts: one project binding per shared checkout.
   process.kill(state.pid);
   for (

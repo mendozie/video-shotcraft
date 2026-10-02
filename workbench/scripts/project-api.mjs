@@ -60,6 +60,7 @@ export function projectApi(root) {
     : null;
   const store = projectRoot ? createProjectStore(projectRoot) : null;
   const jobs = new Map();
+  let draining = false;
   recoverRenderJob(root);
   const readJob = () => readRenderJob(root);
   const active = () => isRenderActive(readJob());
@@ -103,7 +104,7 @@ export function projectApi(root) {
       });
       server.middlewares.use("/api", async (req, res, next) => {
         const route = (req.url ?? "").split("?")[0];
-        if (!route.startsWith("/project") && !route.startsWith("/export"))
+        if (route !== "/drain" && !route.startsWith("/project") && !route.startsWith("/export"))
           return next();
         const send = (status, body) => {
           res.statusCode = status;
@@ -140,13 +141,23 @@ export function projectApi(root) {
             return send(405, { error: "Method not allowed" });
           if (!req.headers["content-type"]?.startsWith("application/json"))
             return send(415, { error: "JSON required" });
-          let raw = "";
+          const chunks = [];
+          let byteLength = 0;
           for await (const chunk of req) {
-            raw += chunk;
-            if (Buffer.byteLength(raw) > 4_000_000)
-              return send(413, { error: "Project too large" });
+            const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            byteLength += bytes.length;
+            if (byteLength > 4_000_000) return send(413, { error: "Project too large" });
+            chunks.push(bytes);
           }
-          const body = JSON.parse(raw);
+          const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          if (route === "/drain") {
+            if (body.ownerPid !== process.pid) return send(409, { error: "Server ownership changed" });
+            if (active() || [...jobs.values()].some(j => j.status === "running"))
+              return send(409, { error: "Render still running" });
+            draining = true;
+            return send(200, { ok: true });
+          }
+          if (draining) return send(503, { error: "Server is stopping; reopen after switching" });
           if (body.projectId !== store.projectId)
             return send(409, {
               error: "Active project changed; reopen this tab",
