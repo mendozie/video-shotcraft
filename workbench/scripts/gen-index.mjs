@@ -25,6 +25,8 @@ const ensureLink = (linkPath, target) => {
   if (!existsSync(abs)) return false;
   try {
     const st = lstatSync(linkPath);
+    // Keep live project/custom bindings; bundled links are only fallbacks.
+    if (st.isSymbolicLink() && existsSync(linkPath)) return true;
     if (st.isSymbolicLink()) unlinkSync(linkPath);
     else return true; // 真实文件/目录（成片工程链接进来的）：不动
   } catch { /* 不存在 */ }
